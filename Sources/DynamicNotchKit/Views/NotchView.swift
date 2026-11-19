@@ -11,7 +11,7 @@ struct NotchView<Expanded, CompactLeading, CompactTrailing>: View where Expanded
     @ObservedObject private var dynamicNotch: DynamicNotch<Expanded, CompactLeading, CompactTrailing>
     @State private var compactLeadingWidth: CGFloat = 0
     @State private var compactTrailingWidth: CGFloat = 0
-    private let safeAreaInset: CGFloat = 15
+    private var safeAreaInset: CGFloat { dynamicNotch.appearance.contentInsets }
 
     init(dynamicNotch: DynamicNotch<Expanded, CompactLeading, CompactTrailing>) {
         self.dynamicNotch = dynamicNotch
@@ -53,12 +53,41 @@ struct NotchView<Expanded, CompactLeading, CompactTrailing>: View where Expanded
         (compactTrailingWidth - compactLeadingWidth) / 2
     }
 
+    /// Height of the black band kept in the transparent appearance: the hardware notch itself.
+    /// Hovering in the compact state grows the content to the menu bar height, so follow it.
+    private var notchBandHeight: CGFloat {
+        (dynamicNotch.state == .compact && dynamicNotch.isHovering) ? dynamicNotch.menubarHeight : dynamicNotch.notchSize.height
+    }
+
+    @ViewBuilder
+    private func notchBackground() -> some View {
+        // The opening/closing animation can overshoot, so the -50 padding makes sure that it's still filled.
+        switch dynamicNotch.appearance.background {
+        case .opaque:
+            Rectangle()
+                .foregroundStyle(.black)
+                .padding(-50)
+        case let .custom(style):
+            Rectangle()
+                .fill(style)
+                .padding(-50)
+        case .transparent:
+            // Only the notch band stays black when expanded; compact/hidden keep the full black pebble.
+            // The band height animates together with the shape, so the black recedes into the notch
+            // on expand and swallows the content back on collapse.
+            Rectangle()
+                .foregroundStyle(.black)
+                .frame(maxHeight: dynamicNotch.state == .expanded ? notchBandHeight : .infinity)
+                .padding(.horizontal, -50)
+                .padding(.top, -50)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        }
+    }
+
     var body: some View {
         notchContent()
             .background {
-                Rectangle()
-                    .foregroundStyle(.black)
-                    .padding(-50) // The opening/closing animation can overshoot, so this makes sure that it's still black
+                notchBackground()
             }
             .mask {
                 NotchShape(

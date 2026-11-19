@@ -10,7 +10,7 @@ import SwiftUI
 struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expanded: View, CompactLeading: View, CompactTrailing: View {
     @ObservedObject private var dynamicNotch: DynamicNotch<Expanded, CompactLeading, CompactTrailing>
     @State private var windowHeight: CGFloat = 0
-    private let safeAreaInset: CGFloat = 15
+    private var safeAreaInset: CGFloat { dynamicNotch.appearance.contentInsets }
 
     init(dynamicNotch: DynamicNotch<Expanded, CompactLeading, CompactTrailing>) {
         self.dynamicNotch = dynamicNotch
@@ -25,15 +25,7 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
     }
 
     var body: some View {
-        notchContent()
-            .background {
-                VisualEffectView(material: .popover, blendingMode: .behindWindow)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .strokeBorder(.quaternary, lineWidth: 1)
-                    }
-            }
-            .clipShape(.rect(cornerRadius: cornerRadius))
+        chrome(notchContent())
             .padding(20)
             .onGeometryChange(for: CGFloat.self, of: \.size.height) { newHeight in
                 // This makes sure that the floating window FULLY slides off before disappearing
@@ -41,6 +33,25 @@ struct NotchlessView<Expanded, CompactLeading, CompactTrailing>: View where Expa
             }
             .offset(y: dynamicNotch.state == .expanded ? dynamicNotch.notchSize.height : -windowHeight)
             .onHover(perform: dynamicNotch.updateHoverState)
+    }
+
+    /// Stock material + hairline + clip. Skipped entirely when the content brings its own material
+    /// (`appearance.usesSystemMaterialWhenFloating == false`), so its own shape and shadow survive.
+    @ViewBuilder
+    private func chrome(_ content: some View) -> some View {
+        if dynamicNotch.appearance.usesSystemMaterialWhenFloating {
+            content
+                .background {
+                    VisualEffectView(material: .popover, blendingMode: .behindWindow)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                .strokeBorder(.quaternary, lineWidth: 1)
+                        }
+                }
+                .clipShape(.rect(cornerRadius: cornerRadius))
+        } else {
+            content
+        }
     }
 
     private func notchContent() -> some View {

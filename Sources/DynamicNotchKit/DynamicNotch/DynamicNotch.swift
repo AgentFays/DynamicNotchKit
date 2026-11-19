@@ -71,6 +71,10 @@ public final class DynamicNotch<Expanded, CompactLeading, CompactTrailing>: Obse
     /// Configuration for customizing transition animations and behavior.
     public var transitionConfiguration = DynamicNotchTransitionConfiguration()
 
+    /// Appearance of the window chrome (background fill, content insets, floating material, shadow).
+    /// Set it before the notch is first presented. Defaults to the stock look.
+    public var appearance = DynamicNotchAppearance()
+
     /// Content
     let expandedContent: Expanded
     let compactLeadingContent: CompactLeading
