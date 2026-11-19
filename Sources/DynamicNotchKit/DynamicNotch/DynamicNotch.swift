@@ -369,9 +369,14 @@ private extension DynamicNotch {
         )
         panel.contentView = view
 
+        // Full screen height: the window used to be half the screen tall, so any expanded
+        // content taller than that was centered by the hosting view and clipped on BOTH
+        // edges (header lost under the menu bar, bottom cut). The window is transparent and
+        // click-through outside the drawn shape, so a taller window costs nothing; the client
+        // remains responsible for capping its content to the visible frame.
         let size = NSSize(
             width: screen.frame.width / 2,
-            height: screen.frame.height / 2
+            height: screen.frame.height
         )
         let origin = NSPoint(
             x: screen.frame.midX - (size.width / 2),
